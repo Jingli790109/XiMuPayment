@@ -1,0 +1,20 @@
+{
+    "name": "XiMuTech",
+    "license": "proprietary",
+    "type": "project",
+    "description": "This is the payment of Wechat and Alipay component",
+    "authors": [
+        {
+            "name": "Jing",
+            "email": "ximutech@163.com"
+        }
+    ],
+    "require": {
+        "php": "^5.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "XiMu\\": "src/"
+        }
+    }
+}
