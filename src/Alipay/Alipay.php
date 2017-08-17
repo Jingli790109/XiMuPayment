@@ -73,6 +73,7 @@ class Alipay
     private $preCreateNotifyUrl = '';
     private $maxQueryRetry;
     private $queryDuration;
+    private $logFilePath;
 
     public function __construct($config)
     {
@@ -88,7 +89,7 @@ class Alipay
         $this->pId                = $config->getPId();
         $this->maxQueryRetry      = $config->getMaxQueryRetry();
         $this->queryDuration      = $config->getQueryDuration();
-
+        $this->logFilePath        = $config->getLogFile();
         if(empty($this->appId) || trim($this->appId) == '') {
             throw new \Exception("appid should not be NULL!");
         }
@@ -132,10 +133,10 @@ class Alipay
     /**
      * 生成用户授权回调URL.
      */
-    public function generateUserAuthUrl($partner)
+    public function generateUserAuthUrl($redirectUrl)
     {
         $gatewayUrl  = $this->debug ? $this->testAuthUserUrl : $this->authUserUrl;
-        $redirectUrl = urlencode($this->notifyUrl . 'payment/' . $storeId . '/user/auth');
+        $redirectUrl = urlencode($redirectUrl);
         $state       = $this->generateUserAuthState();
         $url         = $gatewayUrl . '?app_id=' . $this->appId . '&scope=auth_base&redirect_uri=' . $redirectUrl . '&state=' . $state;
         return $url;
@@ -167,7 +168,9 @@ class Alipay
         $builder = new AlipayAppAuthTokenContentBuilder();
         $builder->appAuthToken($code);
         $bizContent = $builder->getBizContent();
-        Utils::logFile('alipay', __FILE__, 'get auth token', $bizContent);
+        if ($this->logFilePath) {
+            $this->logFile('get auth token', $bizContent);
+        }
         $request = new AlipayOpenAuthTokenAppRequest();
         $request->setBizContent($bizContent);
         $response = $this->aopClientRequestExecute($request);
@@ -184,7 +187,9 @@ class Alipay
         $builder = new AlipayAppAuthTokenContentBuilder();
         $builder->queryAuthToken($token);
         $bizContent = $builder->getBizContent();
-        Utils::logFile('alipay', __FILE__, 'query auth token', $bizContent);
+        if ($this->logFilePath) {
+            $this->logFile('query auth token', $bizContent);
+        }
         $request = new AlipayOpenAuthTokenAppQueryRequest();
         $request->setBizContent($bizContent);
         $response = $this->aopClientRequestExecute($request);
@@ -202,7 +207,9 @@ class Alipay
         $builder->setGrantType('refresh_token');
         $builder->setRefreshToken($refreshToken);
         $bizContent = $builder->getBizContent();
-        //Utils::logFile('alipay', __FILE__, 'refresh auth token', $bizContent);
+        if ($this->logFilePath) {
+            $this->logFile('refresh auth token', $bizContent);
+        }
         $request = new AlipayOpenAuthTokenAppRequest();
         $request->setBizContent($bizContent);
         $response = $this->aopClientRequestExecute($request);
@@ -277,7 +284,9 @@ class Alipay
             $builder->setExtendParams($extendParamsArr);
         }
         $content = $builder->getBizContent();
-        //Utils::logFile('alipay', __FILE__, 'trade create order', $content);
+        if ($this->logFilePath) {
+            $this->logFile('trade create order', $content);
+        }
         $request = new AlipayTradeCreateRequest();
         $request->setBizContent($content);
         $res      = $this->aopClientRequestExecute($request, null, $this->authToken);
@@ -309,7 +318,9 @@ class Alipay
             $builder->setTerminalId($terminalId);
         }
         $content = $builder->getBizContent();
-        //Utils::logFile('alipay', __FILE__, 'trade pay order', $content);
+        if ($this->logFilePath) {
+            $this->logFile('trade pay order', $content);
+        }
         $request = new AlipayTradePayRequest();
         $request->setBizContent($content);
         $res      = $this->aopClientRequestExecute($request, null, $this->authToken);
@@ -335,7 +346,9 @@ class Alipay
             $builder->setExtendParams($extendParamsArr);
         }
         $content = $builder->getBizContent();
-        //Utils::logFile('alipay', __FILE__, 'trade precreate order', $content);
+        if ($this->logFilePath) {
+            $this->logFile('trade precreate order', $content);
+        }
         $request = new AlipayTradePrecreateRequest();
         $request->setBizContent($content);
         $request->setNotifyUrl($this->preCreateNotifyUrl);
@@ -353,7 +366,9 @@ class Alipay
         $builder->setTradeNo($tradeNo);
         $builder->setOutTradeNo($outTradeNo);
         $content = $builder->getBizContent();
-        Utils::logFile('alipay', __FILE__, 'trade query order', $content);
+        if ($this->logFilePath) {
+            $this->logFile('trade query order', $content);
+        }
         $request = new AlipayTradeQueryRequest();
         $request->setBizContent($content);
         $res      = $this->aopClientRequestExecute($request, null, $this->authToken);
@@ -369,20 +384,14 @@ class Alipay
         $builder = new AlipayTradeCloseContentBuilder();
         $builder->setTradeNo($tradeNo);
         $content = $builder->getBizContent();
-        Utils::logFile('alipay', __FILE__, 'trade close order', $content);
+        if ($this->logFilePath) {
+            $this->logFile('trade close order', $content);
+        }
         $request = new AlipayTradeCloseRequest();
         $request->setBizContent($content);
         $res      = $this->aopClientRequestExecute($request, null, $this->authToken);
         $response = new AlipayTradeCloseResponse($request, $res);
         return $response->parse();
-    }
-
-    /**
-     * 账单下载，获取账单地址
-     */
-    public function billDownloadbyurl($date)
-    {
-        return $this->getbilldownloadurl($date);
     }
 
     /**
@@ -395,7 +404,9 @@ class Alipay
             ->setBillDate($date)
         ;
         $content = $builder->getBizContent();
-        Utils::logFile('alipay', __FILE__, 'download bill', $content);
+        if ($this->logFilePath) {
+            $this->logFile('download bill', $content);
+        }
         $request = new AlipayDataDataserviceBillDownloadurlQueryRequest();
         $request->setBizContent($content);
         $res      = $this->aopClientRequestExecute($request, null, $this->authToken);
@@ -416,7 +427,7 @@ class Alipay
             return array('status' => 'false', "msg" => 'DO NOT REVICE DATE OR TOKENID');
         }
 
-        $alipay_data_file   = $this->alipay_data_file;      //支付宝未加密地址
+        $alipay_data_file   = $this->alipay_data_file;
         $filename           = $date.'_'.$tokenid.'.zip';
         $tempfile           = 'temp.zip';
 
@@ -447,7 +458,9 @@ class Alipay
                 ->setTradeNo($tradeNo)
         ;
         $content = $builder->getBizContent();
-        Utils::logFile('alipay', __FILE__, 'trade refund', $content);
+        if ($this->logFilePath) {
+            $this->logFile('trade refund', $content);
+        }
         $request = new AlipayTradeRefundRequest();
         $request->setBizContent($content);
         $res      = $this->aopClientRequestExecute($request, null, $this->authToken);
@@ -468,7 +481,9 @@ class Alipay
         $builder->setTradeNo($tradeNo);
         $builder->setOutTradeNo($outTradeNo);
         $content = $builder->getBizContent();
-        Utils::logFile('alipay', __FILE__, 'trade cancel order', $content);
+        if ($this->logFilePath) {
+            $this->logFile('trade cancel order', $content);
+        }
         $request = new AlipayTradeCancelRequest();
         $request->setBizContent($content);
         $res      = $this->aopClientRequestExecute($request, null, $this->authToken);
@@ -528,8 +543,22 @@ class Alipay
 		return false;
 	}
 
-    public function syncQueryOrder($payId, $tradeNo)
+    public function logFile($title, $content)
     {
-        return $this->loopQueryResult($tradeNo, $payId);
+        $folder = $this->logFilePath;
+        if (!file_exists($folder)) {
+            return;
+        }
+        $filename = $folder . '/alipay_' . date("Y-m-d") . '.php';
+        $filename = str_replace('//', '/', $filename);
+        if (!file_exists($filename)) {
+            file_put_contents($filename, '<?php exit(); ?>' . "\n");
+        }
+        file_put_contents(
+            $filename,
+            date("Y-m-d H:i:s") . "\n" . $title . "\n" . $content
+            . "\n-------------------------------------\n",
+            FILE_APPEND | LOCK_EX
+        );
     }
 }

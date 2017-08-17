@@ -24,7 +24,6 @@ class AlipaySystemOauthTokenRequest
 	 * 刷新令牌，上次换取访问令牌时得到。见出参的refresh_token字段
 	 **/
 	private $refreshToken;
-
 	private $apiParas = array();
 	private $terminalType;
 	private $terminalInfo;
@@ -33,7 +32,6 @@ class AlipaySystemOauthTokenRequest
 	private $notifyUrl;
 	private $returnUrl;
     private $needEncrypt=false;
-
 
 	public function setCode($code)
 	{

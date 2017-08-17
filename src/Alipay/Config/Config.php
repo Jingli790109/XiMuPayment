@@ -17,6 +17,7 @@ class Config
     private $debug              = true;
     private $testGatewayUrl     = 'https://openapi.alipaydev.com/gateway.do';
     private $preCreateNotifyUrl;
+    private $logFile            = false;
 
     public function setQueryDuration($queryDuration)
     {
@@ -146,5 +147,16 @@ class Config
     public function getPreCreateNotifyUrl()
     {
         return $this->preCreateNotifyUrl;
+    }
+
+    public function setLogFile($logFile)
+    {
+        $this->logFile = $logFile;
+        return $this;
+    }
+
+    public function getLogFile()
+    {
+        return $this->logFile;
     }
 }
